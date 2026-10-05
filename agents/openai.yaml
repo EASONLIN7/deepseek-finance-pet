@@ -1,0 +1,8 @@
+interface:
+  display_name: "DeepSeek Finance Pet"
+  short_description: "DeepSeek balance bubble on the Codex desktop pet"
+  brand_color: "#4D6BFE"
+  default_prompt: "Use $deepseek-finance-pet to show my DeepSeek balance on the desktop pet."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,50 @@
+{
+  "_comment": "复制到 C:\\Users\\<你>\\.codex\\finance-pet\\config.json 后按需修改。所有字段都可省略，省略即用默认值。",
+
+  "api_key": "",
+  "_api_key_note": "留空即自动使用 Codex config.toml 里 model_providers.<provider>.experimental_bearer_token；也可用环境变量 DEEPSEEK_API_KEY。",
+  "provider": "deepseek",
+  "api_base": "https://api.deepseek.com",
+  "timeout": 8,
+  "retries": 1,
+
+  "currency": "CNY",
+  "fx_usd_cny": 7.1,
+  "default_model": "deepseek-flash",
+  "holidays": [],
+
+  "theme": "auto",
+  "auto_hide_seconds": 3,
+  "_auto_hide_note": "点击弹出的气泡几秒后自动关闭；写 0 表示一直停留。",
+  "alert_hide_seconds": 8,
+  "_alert_hide_note": "主动提醒的气泡停留时间，比点击弹窗久一点便于看清。",
+  "width": 320,
+  "offset": 8,
+  "click_padding": 10,
+  "follow_drag": true,
+  "_follow_drag_note": "拖动桌宠时气泡实时跟随。设为 false 则气泡停在弹出时的位置。",
+  "hotkey": "ctrl+alt+b",
+
+  "alerts_enabled": true,
+  "alerts_poll_seconds": 90,
+  "_alerts_poll_note": "后台自检周期（秒）。检测余额不足与大额消耗。",
+  "low_balance_threshold": 5,
+  "_low_balance_note": "余额低于该值就主动弹窗提醒（默认 5 元）。",
+  "low_balance_cooldown_minutes": 60,
+  "_low_balance_cooldown_note": "同一条提醒的冷却时间，避免反复弹。",
+  "burst_window_minutes": 30,
+  "burst_threshold": 2,
+  "_burst_note": "最近 30 分钟内消耗超过 2 元就提醒。按你的消费节奏调这个数。",
+  "burst_cooldown_minutes": 30,
+
+  "mascot_rect": null,
+  "_mascot_rect_note": "留 null 自动定位；一般不用手填。",
+  "mascot_offset": null,
+  "_mascot_offset_note": "由 .\\run.ps1 -AutoDetect 自动写入的 [dx,dy,dw,dh] 修正量。手填可覆盖。",
+
+  "pricing": {
+    "_comment": "USD / 1M tokens 的 peak 价；错峰自动取一半。官方调价后在这里覆盖。",
+    "deepseek-flash": { "cache_hit": 0.006, "cache_miss": 0.3, "output": 1.2 },
+    "deepseek-v4-pro": { "cache_hit": 0.044, "cache_miss": 1.32, "output": 3.96 }
+  }
+}

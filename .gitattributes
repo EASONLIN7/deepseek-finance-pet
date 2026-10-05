@@ -1,0 +1,4 @@
+# Normalize line endings so the Python modules stay LF on every platform
+* text=auto eol=lf
+*.png binary
+*.ps1 text eol=crlf
