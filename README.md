@@ -108,7 +108,7 @@ Codex 的桌宠是一套**纯声明式的精灵图资源**：`~/.codex/pets/<名
 先把这个仓库装成 Codex skill（`SKILL.md` 需要位于 skill 根目录）：
 
 ```powershell
-git clone https://github.com/<you>/deepseek-finance-pet "$env:USERPROFILE\.codex\skills\deepseek-finance-pet"
+git clone https://github.com/EASONLIN7/deepseek-finance-pet "$env:USERPROFILE\.codex\skills\deepseek-finance-pet"
 cd "$env:USERPROFILE\.codex\skills\deepseek-finance-pet"
 ```
 
