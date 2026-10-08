@@ -85,6 +85,8 @@ class Config:
     mascot_offset: tuple[int, int, int, int] | None = None  # 叠加在自动定位结果上的 (dx,dy,dw,dh)
     click_padding: int = 10
     follow_drag: bool = True     # 拖动桌宠时气泡实时跟随
+    require_pet_window: bool = True      # 点击必须落在 Codex 窗口上才算
+    pet_process_names: tuple[str, ...] = ("chatgpt.exe", "codex.exe")
     hotkey: str | None = "ctrl+alt+b"   # 备用快捷键；None 表示关闭
 
     # --- 存储 ---
@@ -206,6 +208,11 @@ def load_config(config_file: Path | None = None) -> Config:
         offset=int(raw.get("offset") or 8),
         click_padding=int(raw.get("click_padding") or 10),
         follow_drag=_as_bool(raw.get("follow_drag"), True),
+        require_pet_window=_as_bool(raw.get("require_pet_window"), True),
+        pet_process_names=tuple(
+            str(n).lower() for n in (raw.get("pet_process_names")
+                                     or ("chatgpt.exe", "codex.exe"))
+        ),
         alerts_enabled=_as_bool(raw.get("alerts_enabled"), True),
         alerts_poll_seconds=float(raw.get("alerts_poll_seconds") or 90.0),
         low_balance_threshold=float(raw.get("low_balance_threshold") or 5.0),

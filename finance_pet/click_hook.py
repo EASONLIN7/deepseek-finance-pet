@@ -18,6 +18,7 @@ from ctypes import wintypes
 from typing import Callable
 
 from .pet_locator import MascotRect
+from .win32_windows import window_at_point
 
 WH_MOUSE_LL = 14
 WM_MOUSEMOVE = 0x0200
@@ -100,11 +101,18 @@ class PetClickHook:
         padding: int = 6,
         hotkey: str | None = "ctrl+alt+b",
         throttle: float = 0.25,
+        require_pet_window: bool = True,
+        pet_process_names: tuple[str, ...] = ("chatgpt.exe", "codex.exe"),
     ) -> None:
         self.rect_provider = rect_provider
         self.padding = padding
         self.hotkey = hotkey
         self.throttle = throttle
+        # 只按坐标判断会把覆盖在桌宠上方的窗口（音量面板、浏览器……)也算进来，
+        # 所以默认再校验一次"该坐标命中的顶层窗口是否属于 Codex"。
+        self.require_pet_window = require_pet_window
+        self.pet_process_names = {name.lower() for name in pet_process_names}
+        self._proc_cache: dict[int, str] = {}
 
         self.events: queue.Queue[str] = queue.Queue()
         self.last_point: tuple[int, int] | None = None
@@ -152,7 +160,27 @@ class PetClickHook:
         rect = self.rect_provider()
         if not rect or not rect.overlay_open:
             return False
-        return rect.contains(x, y, self.padding)
+        if not rect.contains(x, y, self.padding):
+            return False
+        if self.require_pet_window and not self._hits_pet_window(x, y):
+            return False
+        return True
+
+    def _hits_pet_window(self, x: int, y: int) -> bool:
+        """坐标下的顶层窗口是否属于 Codex（或我们的气泡）。
+
+        拿不到窗口信息时保守放行，避免因为 API 异常导致点击桌宠没反应。
+        """
+        hit = window_at_point(x, y)
+        if hit is None or not hit.process:
+            return True
+        name = self._proc_cache.get(hit.pid)
+        if name is None:
+            name = hit.process
+            if len(self._proc_cache) > 256:   # 防止长期运行无限增长
+                self._proc_cache.clear()
+            self._proc_cache[hit.pid] = name
+        return name in self.pet_process_names
 
     def _emit(self, kind: str) -> None:
         now = time.monotonic()

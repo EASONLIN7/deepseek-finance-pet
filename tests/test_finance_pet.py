@@ -421,5 +421,72 @@ class DragFollowTests(unittest.TestCase):
         self.assertIsNone(parse_hotkey("ctrl+alt"))
 
 
+class PetWindowHitTests(unittest.TestCase):
+    """点击必须同时满足：落在桌宠矩形内 + 该坐标确实是 Codex 的窗口。
+
+    回归用例：以前只看坐标，导致音量面板等覆盖在桌宠上方的窗口被误判成
+    点击桌宠（Codex 退出后那个位置仍然是隐形热区）。
+    """
+
+    def setUp(self) -> None:
+        self.rect = MascotRect(1000, 500, 166, 180)
+        self.inside = (1080, 590)
+        self.outside = (100, 100)
+
+    def _hook(self, **kwargs) -> PetClickHook:
+        return PetClickHook(lambda: self.rect, **kwargs)
+
+    def _with_window(self, process: str, cls: str = "Chrome_WidgetWin_1"):
+        from finance_pet.win32_windows import WindowHit
+
+        return mock.patch(
+            "finance_pet.click_hook.window_at_point",
+            return_value=WindowHit(hwnd=1, pid=99, process=process, class_name=cls),
+        )
+
+    def test_click_on_codex_window_passes(self) -> None:
+        with self._with_window("chatgpt.exe"):
+            self.assertTrue(self._hook()._is_pet_click(*self.inside))
+
+    def test_click_on_other_app_is_rejected(self) -> None:
+        """这是本次修复的核心：别的窗口盖在桌宠上时不应触发。"""
+        with self._with_window("msedge.exe"):
+            self.assertFalse(self._hook()._is_pet_click(*self.inside))
+
+    def test_volume_panel_style_windows_are_rejected(self) -> None:
+        for process in ("shellexperiencehost.exe", "explorer.exe", "startmenuexperiencehost.exe"):
+            with self.subTest(process=process), self._with_window(process):
+                self.assertFalse(self._hook()._is_pet_click(*self.inside))
+
+    def test_codex_process_alias_passes(self) -> None:
+        with self._with_window("codex.exe"):
+            self.assertTrue(self._hook()._is_pet_click(*self.inside))
+
+    def test_unknown_window_defers_to_coordinates(self) -> None:
+        """拿不到窗口信息时保守放行，避免接口异常导致桌宠点不动。"""
+        with mock.patch("finance_pet.click_hook.window_at_point", return_value=None):
+            self.assertTrue(self._hook()._is_pet_click(*self.inside))
+
+    def test_outside_rect_is_still_rejected(self) -> None:
+        with self._with_window("chatgpt.exe"):
+            self.assertFalse(self._hook()._is_pet_click(*self.outside))
+
+    def test_check_can_be_disabled(self) -> None:
+        with self._with_window("msedge.exe"):
+            hook = self._hook(require_pet_window=False)
+            self.assertTrue(hook._is_pet_click(*self.inside))
+
+    def test_custom_process_whitelist(self) -> None:
+        with self._with_window("my-pet-host.exe"):
+            hook = self._hook(pet_process_names=("my-pet-host.exe",))
+            self.assertTrue(hook._is_pet_click(*self.inside))
+            self.assertFalse(self._hook()._is_pet_click(*self.inside))
+
+    def test_hidden_overlay_never_triggers(self) -> None:
+        hidden = MascotRect(1000, 500, 166, 180, overlay_open=False)
+        with self._with_window("chatgpt.exe"):
+            self.assertFalse(PetClickHook(lambda: hidden)._is_pet_click(*self.inside))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -155,6 +155,8 @@ python -m finance_pet
 | `width` | `320` | 气泡宽度（像素） |
 | `offset` | `8` | 气泡与桌宠的间距 |
 | `follow_drag` | `true` | 拖动桌宠时气泡实时跟随；设 `false` 则停在原地 |
+| `require_pet_window` | `true` | 点击必须落在 Codex 窗口上才算（见下文"点击判定"） |
+| `pet_process_names` | `["chatgpt.exe","codex.exe"]` | 视为桌宠宿主进程的白名单 |
 | `hotkey` | `"ctrl+alt+b"` | 备用全局快捷键；设 `null` 关闭 |
 | `mascot_rect` | `null` | 手动指定桌宠矩形 `[x, y, w, h]`，见下一节 |
 | `mascot_offset` | 自动生成 | 叠加在自动定位结果上的修正量，由 `-AutoDetect` 写入 |
@@ -252,6 +254,33 @@ DPI 感知，避免缩放屏幕上坐标整体错位。
 所以跟随过程几乎不占 CPU；只有"上方空间不够、尾巴要翻面"时才重画一次。
 
 不想让它跟随就把 `follow_drag` 设成 `false`。
+
+### 点击判定：不只看坐标
+
+一次点击要被认定为"点了桌宠"，必须**同时**满足：
+
+1. 坐标落在桌宠矩形内（`click_padding` 可放宽）；
+2. 该坐标下最顶层的窗口属于 Codex（`chatgpt.exe` / `codex.exe`）。
+
+第 2 条是必须的。Codex 会把桌宠位置写进 `.codex-global-state.json`，但**退出时
+不会清除**；如果只判断坐标，那个屏幕位置就会变成一块永久"隐形热区"——
+Codex 关掉之后点它照样弹窗。音量面板、浏览器、游戏窗口盖在桌宠上方时，
+点它们也会被误判成点桌宠。
+
+想确认当前状态，跑一次：
+
+```powershell
+.\run.ps1 -Where
+```
+
+```json
+{"rect": [2250, 1079, 104, 67], "overlay_open": true,
+ "hit_process": "chatgpt.exe", "hit_is_codex": true}
+```
+
+`hit_is_codex` 为 `false` 就说明桌宠此刻被别的窗口盖住了（或 Codex 没在运行），
+点击会被正确忽略。真机环境实在需要放宽时，把 `require_pet_window` 设成 `false`，
+或者往 `pet_process_names` 里加你的进程名。
 
 ---
 

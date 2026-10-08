@@ -86,6 +86,10 @@ See `config.example.json` for the full set, and the README for what each does.
    reconstructed from rollout logs. Usage from the web UI or other tools is not in
    that number — the balance endpoint is the source of truth. Say so when reporting.
 4. **Do not claim the pet was modified.** The pet is untouched; this is a companion.
+5. **A click only counts if it lands on the pet's window.** Codex leaves the pet
+   rect in `.codex-global-state.json` after it exits, so a coordinate-only check
+   turns that screen area into a permanent invisible hot zone. Always keep
+   `require_pet_window` on unless the user's environment genuinely needs it off.
 
 ## Verify
 

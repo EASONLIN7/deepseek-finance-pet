@@ -160,14 +160,20 @@ def main(argv: list[str] | None = None) -> int:
     # 下面这些命令只读 Desk 状态，不需要（也就会去创建）账本数据库
     if args.where:
         from .pet_locator import locate
+        from .win32_windows import window_at_point
 
         rect = locate(config.global_state_path, override=config.mascot_rect,
                       offset=config.mascot_offset)
+        hit = window_at_point(*rect.center) if rect else None
         _log(json.dumps(
             {
                 "rect": list(rect.as_tuple()) if rect else None,
                 "source": rect.source if rect else None,
                 "overlay_open": rect.overlay_open if rect else None,
+                # 该位置当前实际命中的窗口：不是 Codex 就说明桌宠被遮挡/已退出
+                "hit_process": hit.process if hit else None,
+                "hit_class": hit.class_name if hit else None,
+                "hit_is_codex": bool(hit and hit.process in config.pet_process_names),
             },
             ensure_ascii=False,
         ))
@@ -358,6 +364,8 @@ def run_app(
             lambda: watcher.poll(),
             padding=config.click_padding,
             hotkey=config.hotkey,
+            require_pet_window=config.require_pet_window,
+            pet_process_names=config.pet_process_names,
         )
         hook.start()
 
@@ -378,6 +386,16 @@ def run_app(
     _log(f"  数据目录 : {config.data_dir}")
     _log(f"  主题     : {config.theme}")
     _log(f"  快捷键   : {config.hotkey or '已关闭'}")
+    if watcher.rect is not None:
+        try:
+            from .win32_windows import window_at_point
+
+            hit = window_at_point(*watcher.rect.center)
+            if hit is not None and config.require_pet_window:
+                mark = "✓" if hit.process in config.pet_process_names else "✗（当前点不到，会被忽略）"
+                _log(f"  桌宠位置 : {hit.process or '未知'} {mark}")
+        except Exception:
+            pass
     if hook is not None:
         detail = "已安装" if hook.installed else f"安装失败（{hook.last_error}）"
         _log(f"  鼠标钩子 : {detail}")

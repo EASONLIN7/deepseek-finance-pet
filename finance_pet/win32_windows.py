@@ -24,6 +24,10 @@ PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 _user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 _user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 _user32.IsWindowVisible.argtypes = [wintypes.HWND]
+_user32.WindowFromPoint.argtypes = [wintypes.POINT]
+_user32.WindowFromPoint.restype = wintypes.HWND
+_user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+_user32.GetAncestor.restype = wintypes.HWND
 _kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
 _kernel32.OpenProcess.restype = ctypes.c_void_p
 _kernel32.QueryFullProcessImageNameW.argtypes = [
@@ -31,6 +35,8 @@ _kernel32.QueryFullProcessImageNameW.argtypes = [
 ]
 
 _CB = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+GA_ROOT = 2
 
 #: Codex 桌宠窗口所属进程名（桌面端可执行文件名为 ChatGPT.exe）
 CODEX_PROCESS_NAMES = ("chatgpt.exe", "codex.exe")
@@ -55,6 +61,40 @@ class WindowInfo:
     @property
     def bottom(self) -> int:
         return self.y + self.height
+
+
+@dataclass
+class WindowHit:
+    """某个屏幕坐标下最上层的窗口。"""
+
+    hwnd: int
+    pid: int
+    process: str
+    class_name: str
+
+
+def window_at_point(x: int, y: int) -> WindowHit | None:
+    """返回该屏幕坐标命中的顶层窗口（含所属进程名，小写）。
+
+    这是判断"点击到底落在谁身上"的关键：只看坐标会把覆盖在桌宠上方的
+    其它窗口（音量面板、浏览器等）也当成桌宠。
+    """
+    try:
+        hwnd = _user32.WindowFromPoint(wintypes.POINT(x, y))
+        if not hwnd:
+            return None
+        root = _user32.GetAncestor(hwnd, GA_ROOT) or hwnd
+        pid, path = _process_name(root)
+        class_buf = ctypes.create_unicode_buffer(256)
+        _user32.GetClassNameW(root, class_buf, 256)
+        return WindowHit(
+            hwnd=root,
+            pid=pid,
+            process=path.rsplit("\\", 1)[-1].lower() if path else "",
+            class_name=class_buf.value,
+        )
+    except Exception:
+        return None
 
 
 def _process_name(hwnd: int) -> tuple[int, str]:
